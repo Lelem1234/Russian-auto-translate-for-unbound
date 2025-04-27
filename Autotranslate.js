@@ -11,8 +11,8 @@ async function translateText(text) {
   return data[0][0][0];
 }
 
-// Patch Messages API
-const PatchMessages = getByProps("sendMessage", "editMessage");
+// Patch Messages API (No Edit Version)
+const { MessageContent } = getByProps("sendMessage", "editMessage");
 
 const AutoTranslatePlugin = {
   name: "AutoTranslate",
@@ -28,19 +28,23 @@ const AutoTranslatePlugin = {
       try {
         const content = message?.message?.content;
         if (!content) return;
-        
+
+        // Only translate Russian messages
         if (/[А-Яа-яЁё]/.test(content)) {
           const translation = await translateText(content);
           if (!translation) return;
 
-          // Inject translated text into the message
-          PatchMessages.editMessage(
-            message?.message?.channel_id,
-            message?.message?.id,
-            {
-              content: `${content}\n\n**[Translated from Russian]:** ${translation}`
-            }
-          );
+          // Inject a custom visual translation below the message
+          MessageContent.renderMessage(message.message, (props) => {
+            return (
+              <>
+                {props.children}
+                <Text style={{ fontSize: 14, color: "#828282", marginTop: 5 }}>
+                  **[Translated from Russian]:** {translation}
+                </Text>
+              </>
+            );
+          });
         }
       } catch (err) {
         console.error("[AutoTranslate] Error translating:", err);
