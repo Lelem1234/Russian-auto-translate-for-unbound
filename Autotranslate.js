@@ -2,15 +2,16 @@ import { registerPlugin } from "enmity/managers/plugins";
 import { MessageStore } from "enmity/api";
 import { React, Storage, Toasts } from "enmity/metro/common";
 import { getByProps } from "enmity/metro";
-import Settings from "./AutoTranslateSettings"; // We'll define this later
+import { ScrollView, View, Text, Switch } from "enmity/metro/components";
 
-// You'll probably need to use a real API call for translation
+// Translator function
 async function translateText(text) {
   const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=ru&tl=en&dt=t&q=${encodeURIComponent(text)}`);
   const data = await response.json();
   return data[0][0][0];
 }
 
+// Patch Messages API
 const PatchMessages = getByProps("sendMessage", "editMessage");
 
 const AutoTranslatePlugin = {
@@ -57,10 +58,29 @@ const AutoTranslatePlugin = {
   },
 
   getSettingsPanel() {
-    return Settings(this.settings, (newSettings) => {
-      this.settings = newSettings;
-      Storage.plugins.setPlugin("AutoTranslate", this.settings);
-    });
+    const { useState } = React;
+    return () => {
+      const [enabled, setEnabled] = useState(this.settings.enabled);
+
+      const toggle = (value) => {
+        setEnabled(value);
+        this.settings.enabled = value;
+        Storage.plugins.setPlugin("AutoTranslate", this.settings);
+      };
+
+      return (
+        <ScrollView>
+          <View style={{ padding: 20 }}>
+            <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 16 }}>AutoTranslate Settings</Text>
+
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginVertical: 12 }}>
+              <Text style={{ fontSize: 16 }}>Enable Auto-Translate</Text>
+              <Switch value={enabled} onValueChange={toggle} />
+            </View>
+          </View>
+        </ScrollView>
+      );
+    };
   }
 };
 
